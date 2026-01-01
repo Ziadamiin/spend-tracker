@@ -42,16 +42,26 @@ DEFAULT_CURRENCY = os.getenv("DEFAULT_CURRENCY", "EGP")
 st.set_page_config(page_title=APP_TITLE, page_icon="💳", layout="wide")
 
 
+
+def normalize_db_url(url: str) -> str:
+    url = (url or "").strip()
+    if not url:
+        return url
+    # Force SSL for hosted Postgres (Supabase expects SSL)
+    if "sslmode=" not in url:
+        url += ("&" if "?" in url else "?") + "sslmode=require"
+    return url
+
 def get_engine() -> Engine:
     """
     - If DATABASE_URL is set: use Postgres (recommended for hosted use).
     - Else: fallback to local SQLite file.
     """
     if DATABASE_URL:
-        url = DATABASE_URL.strip()
+        url = normalize_db_url(DATABASE_URL.strip())
         # Allow plain postgresql://
-        if url.startswith("postgresql://") and "+psycopg2" not in url:
-            url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        if url.startswith("postgresql://") and "+psycopg" not in url:
+            url = url.replace("postgresql://", "postgresql+psycopg://", 1)
         return create_engine(url, pool_pre_ping=True)
     return create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 
